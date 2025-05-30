@@ -1,0 +1,10 @@
+loguru
+tabulate
+pyyaml
+imgaug
+seaborn
+pycocotools
+terminaltables
+onnxruntime
+tensorboard
+onnx
