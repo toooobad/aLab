@@ -228,23 +228,26 @@ def get_eval_cfgs(args: Namespace) -> Namespace:
 
 
 def merge_cfgs(dst_cfgs: Namespace, src_cfgs: Namespace, default_cfgs: dict) -> Namespace:
-    heading('combined config')
+    heading('merge config')
 
     dst_cfgs = vars(dst_cfgs)
     src_cfgs = vars(src_cfgs)
 
-    for sk, sv in src_cfgs.items():
-        if sk not in dst_cfgs:   # dst_cfgs没有的参数, 直接赋值
-            dst_cfgs[sk] = sv
-        else:
-            dv = dst_cfgs[sk]
+    for src_key, src_value in src_cfgs.items():
+        if src_key == 'work_dir':
+            continue
 
-            if sk == 'auto_scale_lr':    # 如果dst_cfgs中有对应值, 或运算
-                dst_cfgs[sk] = dv | sv
-            else:                        # 如果dst_cfgs中有对应值, 并且与src_cfgs中不相等, 判断是否默认值, 不是默认值的话再赋值
-                if (dv != sv) and (sv != default_cfgs[sk]):   
-                    logger.info(f'The "{sk}" origin is "{dv}" and will be set to "{sv}".')
-                    dst_cfgs[sk] = sv
+        if src_key not in dst_cfgs:           # dst_cfgs没有的参数, 直接赋值
+            dst_cfgs[src_key] = src_value
+        else:
+            dst_value = dst_cfgs[src_key]
+
+            if src_key == 'auto_scale_lr':    # 如果dst_cfgs中有对应值, 或运算
+                dst_cfgs[src_key] = dst_value | src_value
+            else:                             # 如果dst_cfgs中有对应值, 并且与src_cfgs中不相等, 判断是否默认值, 不是默认值的话再赋值
+                if (dst_value != src_value) and (src_value != default_cfgs[src_key]):
+                    logger.info(f'The "{src_key}" origin is "{dst_value}" and will be set to "{src_value}".')
+                    dst_cfgs[src_key] = src_value
 
     return Namespace(**dst_cfgs)
 
