@@ -1,0 +1,109 @@
+epochs: 24
+
+batch_size: 16
+base_batch_size: 32
+test_batch_size: 1
+
+eval_interval: 1
+
+# input size
+input_size: &input_size [512, 512]
+
+# mean & std
+std: &std [58.395, 57.12, 57.375]
+mean: &mean [123.675, 116.28, 103.53]
+
+dataset_type: &dataset_type CocoDatasetDet2D
+
+model:
+  type: TTFNet
+  backbone:
+    type: ResNet
+    depth: 18
+  neck:
+    type: TTFNetShortcutNeck
+    kernel_size: 3
+    upsample_mode: nearest
+    stage_convs: [1, 2, 3]
+    out_channels: [256, 128, 64]
+    in_channels: [64, 128, 256, 512]
+  head:
+    type: TTFNetHead
+    beta: 0.54
+    alpha: 0.54
+    in_channels: 64
+    num_classes: 80
+    base_bbox_size: 16.0
+    bbox_area_process: log
+    num_bbox_head_stacks: 2
+    num_heatmap_head_stacks: 2
+    bbox_feat_channels: 64
+    heatmap_feat_channels: 128
+    loss_cfgs:
+      bbox:
+        type: GIoULoss
+        loss_weight: 5.0
+      heatmap:
+        type: GaussianFocalLoss
+        loss_weight: 1.0
+    initial_cfgs:
+      score_thrs: 0.25
+      local_maximum_kernel: 3
+  
+train_dataset:
+  type: *dataset_type
+  img_dir: data/coco/images/train2017
+  ann_file: data/coco/annotations/instances_train2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+      
+val_dataset:
+  type: *dataset_type
+  test_mode: True
+  img_dir: data/coco/images/val2017
+  ann_file: data/coco/annotations/instances_val2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+
+test_dataset:
+  type: *dataset_type
+  test_mode: True
+  img_dir: data/coco/images/val2017
+  ann_file: data/coco/annotations/instances_val2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+
+optimizer:
+  lr: 0.000125
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [16, 20]
+  gamma: 0.1
+
+metric:
+  type: CocoMetricDet2D
+  ann_file: data/coco/annotations/instances_val2017.json
+
+auto_scale_lr: True

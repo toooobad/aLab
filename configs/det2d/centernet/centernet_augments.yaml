@@ -1,0 +1,120 @@
+epochs: 24
+
+batch_size: 16
+base_batch_size: 32
+test_batch_size: 1
+
+eval_interval: 1
+
+# input size
+input_size: &input_size [512, 512]
+
+# mean & std
+std: &std [58.395, 57.12, 57.375]
+mean: &mean [123.675, 116.28, 103.53]
+
+dataset_type: &dataset_type CocoDatasetDet2D
+
+model:
+  type: CenterNet
+  backbone:
+    type: ResNet
+    depth: 18
+  neck:
+    type: CenterNetUpsampleNeck
+    in_channels: 512
+    num_deconv_layers: 3
+    upsample_mode: nearest
+    num_deconv_kernels: [4, 4, 4]
+    num_deconv_filters: [256, 128, 64]
+  head:
+    type: CenterNetHead
+    in_channels: 64
+    num_classes: 80
+    wh_feat_channels: 64
+    offset_feat_channels: 64
+    heatmap_feat_channels: 64
+    loss_cfgs:
+      wh:
+        type: L1Loss
+        loss_weight: 0.1
+      offset:
+        type: L1Loss
+        loss_weight: 1.0
+      heatmap:
+        type: GaussianFocalLoss
+        loss_weight: 1.0
+    initial_cfgs:
+      score_thrs: 0.25
+      local_maximum_kernel: 3
+  
+train_dataset:
+  type: *dataset_type
+  img_dir: data/coco/images/train2017
+  ann_file: data/coco/annotations/instances_train2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: RandomCrop
+      crop_scales: [0.6, 0.95]
+      keep_aspect: True
+      center_crop: False
+      max_aspect: 2.0
+      prob: 0.5
+    - type: HorizontalFlip
+      prob: 0.5
+    - type: PhotoMetricDistortion
+      hue_delta: 18
+      brightness_delta: 32
+      contrast_range: [0.5, 1.5]
+      saturation_range: [0.5, 1.5]
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+      
+val_dataset:
+  type: *dataset_type
+  test_mode: True
+  img_dir: data/coco/images/val2017
+  ann_file: data/coco/annotations/instances_val2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+
+test_dataset:
+  type: *dataset_type
+  test_mode: True
+  img_dir: data/coco/images/val2017
+  ann_file: data/coco/annotations/instances_val2017.json
+  preprocesses:
+    - type: LoadImageFromFile
+    - type: ImageResize
+      keep_aspect: True
+      padding: True
+      input_size: *input_size
+    - type: Normalize
+      std: *std
+      mean: *mean
+
+optimizer:
+  lr: 0.000125
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [16, 20]
+  gamma: 0.1
+
+metric:
+  type: CocoMetricDet2D
+  ann_file: data/coco/annotations/instances_val2017.json
+
+auto_scale_lr: True

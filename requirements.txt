@@ -1,0 +1,11 @@
+loguru
+tabulate
+pyyaml
+imgaug
+seaborn
+pycocotools
+terminaltables
+onnxruntime
+tensorboard
+onnx
+nuscenes-devkit==1.1.10
